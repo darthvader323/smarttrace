@@ -1,14 +1,29 @@
 import React, { useState } from "react";
 import api from "../api/axios";
+import "../styles/FeaturePages.css";
 
 function StatusManagement() {
 
   const [serial, setSerial] = useState("");
   const [status, setStatus] = useState("RECALLED");
-  const [bulkUpdate, setBulkUpdate] = useState(false);
+  const [serialLevel, setSerialLevel] = useState(null);
 
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+
+  const fetchSerialLevel = async (serialText) => {
+    try {
+      const response = await api.get("serials/", {
+        params: { search: serialText }
+      });
+      const exactMatch = response.data.find(
+        (item) => item.serial === serialText
+      );
+      return exactMatch?.level || null;
+    } catch {
+      return null;
+    }
+  };
 
   const handleUpdate = async () => {
 
@@ -21,9 +36,18 @@ function StatusManagement() {
       return;
     }
 
-    try {
+    let useBulk = false;
 
-      const endpoint = bulkUpdate
+    if (!serialLevel) {
+      const level = await fetchSerialLevel(serial.trim());
+      setSerialLevel(level);
+      if (level === "SECONDARY" || level === "TERTIARY") {
+        useBulk = true;
+      }
+    }
+
+    try {
+      const endpoint = useBulk
         ? "bulk-update-status/"
         : "update-status/";
 
@@ -45,90 +69,76 @@ function StatusManagement() {
 
   return (
 
-    <div className="card">
+    <div className="feature-page">
 
-      <h2>Product Status Management</h2>
-
-      <input
-        type="text"
-        placeholder="Enter Serial"
-        value={serial}
-        onChange={(e) => setSerial(e.target.value)}
-      />
-
-      <select
-        value={status}
-        onChange={(e) => setStatus(e.target.value)}
-      >
-        <option value="ACTIVE">
-          ACTIVE
-        </option>
-
-        <option value="EXPIRED">
-          EXPIRED
-        </option>
-
-        <option value="RECALLED">
-          RECALLED
-        </option>
-      </select>
-
-      <div
-        style={{
-          marginTop: "10px",
-          marginBottom: "10px"
-        }}
-      >
-
-        <label>
-
-          <input
-            type="checkbox"
-            checked={bulkUpdate}
-            onChange={(e) =>
-              setBulkUpdate(e.target.checked)
-            }
-          />
-
-          {" "}
-          Apply to entire hierarchy
-
-        </label>
-
+      <div className="feature-header">
+        <h1>Recall & Status</h1>
+        <p>Update one serial or apply a status change across its hierarchy.</p>
       </div>
 
-      <button
-        className="action"
-        onClick={handleUpdate}
-      >
-        Update Status
-      </button>
+      <div className="feature-panel">
 
-      {message && (
+        <div className="feature-form">
 
-        <p
-          style={{
-            color: "green",
-            marginTop: "10px"
-          }}
-        >
-          {message}
-        </p>
+          <input
+            className="feature-input"
+            type="text"
+            placeholder="Enter serial"
+            value={serial}
+            onChange={(e) => {
+              setSerial(e.target.value);
+              setSerialLevel(null);
+            }}
+          />
 
-      )}
+          <select
+            className="feature-select"
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+          >
+            <option value="ACTIVE">
+              ACTIVE
+            </option>
 
-      {error && (
+            <option value="EXPIRED">
+              EXPIRED
+            </option>
 
-        <p
-          style={{
-            color: "red",
-            marginTop: "10px"
-          }}
-        >
-          {error}
-        </p>
+            <option value="RECALLED">
+              RECALLED
+            </option>
+          </select>
 
-      )}
+          {serialLevel && (
+            <p className="status-note">
+              {serialLevel === "SECONDARY" || serialLevel === "TERTIARY"
+                ? "This is a parent package. All contained items will be updated too."
+                : "This is a primary unit. Only this serial will be updated."}
+            </p>
+          )}
+
+          <button
+            className="primary-action"
+            onClick={handleUpdate}
+          >
+            Update Status
+          </button>
+
+        </div>
+
+        {message && (
+          <p className="alert success">
+            {message}
+          </p>
+        )}
+
+        {error && (
+          <p className="alert error">
+            {error}
+          </p>
+        )}
+
+      </div>
 
     </div>
   );

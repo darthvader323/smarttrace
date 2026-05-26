@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import api from "../api/axios";
+import "../styles/FeaturePages.css";
 
 function ScanVerify() {
 
@@ -7,11 +8,22 @@ function ScanVerify() {
   const [result, setResult] = useState("");
   const [message, setMessage] = useState("");
   const [location, setLocation] = useState("Delhi");
+  const [tracePath, setTracePath] = useState([]);
+
+  const fetchTracePath = async (serialNumber) => {
+    try {
+      const response = await api.get(`full-hierarchy/${serialNumber}/`);
+      setTracePath(response.data.trace_path || []);
+    } catch (error) {
+      setTracePath([]);
+    }
+  };
 
   const handleScan = async () => {
 
     setResult("");
     setMessage("");
+    setTracePath([]);
 
     if (!serial) {
       setMessage("Please enter serial");
@@ -28,9 +40,14 @@ function ScanVerify() {
       setResult(response.data.status);
       setMessage(response.data.message || "");
 
+      if (response.data.status !== "INVALID") {
+        await fetchTracePath(serial);
+      }
+
     } catch (error) {
 
       setResult("INVALID");
+      setTracePath([]);
 
       setMessage(
         error.response?.data?.error || "Verification failed"
@@ -40,64 +57,96 @@ function ScanVerify() {
 
   return (
 
-    <div className="card">
+    <div className="feature-page">
 
-      <h2>Scan & Verify</h2>
+      <div className="feature-header">
+        <h1>Scan & Verify</h1>
+        <p>Check a serial number and record the verification location.</p>
+      </div>
 
-      <input
-        type="text"
-        placeholder="Enter Serial"
-        value={serial}
-        onChange={(e) => setSerial(e.target.value)}
-      />
+      <div className="feature-panel">
 
-      <select
-        value={location}
-        onChange={(e) => setLocation(e.target.value)}
-      >
-        <option value="Delhi">Delhi</option>
-        <option value="Mumbai">Mumbai</option>
-        <option value="Kolkata">Kolkata</option>
-        <option value="Bangalore">Bangalore</option>
-      </select>
+        <div className="feature-form">
 
-      <button className="action" onClick={handleScan}>
-        Verify
-      </button>
+          <input
+            className="feature-input"
+            type="text"
+            placeholder="Enter serial"
+            value={serial}
+            onChange={(e) => setSerial(e.target.value)}
+          />
 
-      <h3>Status:</h3>
+          <select
+            className="feature-select"
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+          >
+            <option value="Delhi">Delhi</option>
+            <option value="Mumbai">Mumbai</option>
+            <option value="Kolkata">Kolkata</option>
+            <option value="Bangalore">Bangalore</option>
+          </select>
 
-      {result && (
-        <div
-          className={
-            result === "VALID"
-              ? "status-valid"
-              : result === "INVALID"
-              ? "status-invalid"
-              : result === "RECALLED"
-              ? "status-invalid"
-              : "status-suspect"
-          }
-        >
-          {result}
+          <button
+            className="primary-action"
+            onClick={handleScan}
+          >
+            Verify
+          </button>
+
         </div>
-      )}
 
-      {message && (
-        <p
-          style={{
-            marginTop: "10px",
-            color:
-              result === "VALID"
-                ? "green"
-                : result === "INVALID"
-                ? "red"
-                : "#333"
-          }}
-        >
-          {message}
-        </p>
-      )}
+        {(result || message) && (
+          <div className="result-panel">
+
+            <h3>Status</h3>
+
+            {result && (
+              <div
+                className={
+                  result === "VALID"
+                    ? "status-pill status-valid"
+                    : result === "INVALID"
+                    ? "status-pill status-invalid"
+                    : result === "RECALLED"
+                    ? "status-pill status-invalid"
+                    : "status-pill status-suspect"
+                }
+              >
+                {result}
+              </div>
+            )}
+
+            {message && (
+              <p
+                className={
+                  result === "VALID"
+                    ? "alert success"
+                    : "alert error"
+                }
+              >
+                {message}
+              </p>
+            )}
+
+          </div>
+        )}
+
+        {tracePath.length > 0 && (
+          <div className="trace-panel">
+            <h3>Red Thread Traceability</h3>
+            <ol className="trace-path">
+              {tracePath.map((node) => (
+                <li key={node.serial}>
+                  <strong>{node.serial}</strong>
+                  {node.level && ` (${node.level})`}
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
+
+      </div>
 
     </div>
   );

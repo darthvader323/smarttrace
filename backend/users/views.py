@@ -1,9 +1,22 @@
-from django.contrib.auth.models import User
+from django.contrib.auth import (
+    authenticate,
+    get_user_model
+)
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework_simplejwt.views import TokenObtainPairView
-from django.contrib.auth import authenticate
 from rest_framework import status
+
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView
+)
+
+User = get_user_model()
+
+
+# =====================================================
+# REGISTER API
+# =====================================================
 
 class RegisterAPIView(APIView):
 
@@ -12,35 +25,90 @@ class RegisterAPIView(APIView):
         username = request.data.get("username")
         password = request.data.get("password")
 
-        if User.objects.filter(username=username).exists():
-            return Response({"error": "User already exists"}, status=400)
-
-        user = User.objects.create_user(
-            username=username,
-            password=password
+        role = request.data.get(
+            "role",
+            "SCANNER"
         )
 
-        return Response({"message": "User created successfully"})
+        # Validation
+        if not username or not password:
+
+            return Response(
+                {
+                    "error":
+                    "Username and password are required"
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Username exists
+        if User.objects.filter(
+            username=username
+        ).exists():
+
+            return Response(
+                {"error": "User already exists"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Create user
+        user = User.objects.create_user(
+            username=username,
+            password=password,
+            role=role
+        )
+
+        return Response({
+            "message":
+            "User created successfully",
+
+            "username":
+            user.username,
+
+            "role":
+            user.role
+        })
+
+
+# =====================================================
+# LOGIN API
+# =====================================================
+
 class CustomLoginView(TokenObtainPairView):
 
     def post(self, request, *args, **kwargs):
 
-        username = request.data.get("username")
-        password = request.data.get("password")
+        username = request.data.get(
+            "username"
+        )
 
-        user = authenticate(username=username, password=password)
+        password = request.data.get(
+            "password"
+        )
+
+        # Authenticate user
+        user = authenticate(
+            username=username,
+            password=password
+        )
 
         if not user:
+
             return Response(
                 {"error": "Invalid credentials"},
                 status=status.HTTP_401_UNAUTHORIZED
             )
 
-        # Get token from parent
-        response = super().post(request, *args, **kwargs)
+        # Generate JWT token
+        response = super().post(
+            request,
+            *args,
+            **kwargs
+        )
 
-        # Add extra data
-        response.data["role"] = user.userprofile.role
+        # Add extra user data
+        response.data["role"] = user.role
+
         response.data["username"] = user.username
 
         return response

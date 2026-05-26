@@ -1,40 +1,23 @@
 import React, { useState } from "react";
 import api from "../api/axios";
+import "../styles/FeaturePages.css";
 
 function TreeNode({ node }) {
+  const children = node.children || [];
 
   return (
-
-    <li style={{ marginTop: "8px" }}>
-
-      <span
-        style={{
-          fontWeight: "600"
-        }}
-      >
-        {node.serial}
-      </span>
-
+    <li>
+      <span className="tree-serial">{node.serial}</span>
       {" "}
-      ({node.level})
+      <span className="tree-level">({node.level})</span>
 
-      {node.children.length > 0 && (
-
-        <ul
-          style={{
-            marginTop: "5px"
-          }}
-        >
-          {node.children.map((child, index) => (
-            <TreeNode
-              key={index}
-              node={child}
-            />
+      {children.length > 0 && (
+        <ul>
+          {children.map((child, index) => (
+            <TreeNode key={index} node={child} />
           ))}
         </ul>
-
       )}
-
     </li>
   );
 }
@@ -50,82 +33,72 @@ function HierarchyTree() {
     setError("");
     setTree(null);
 
-    // Frontend validation
     if (!serial.trim()) {
-
       setError("Please enter a serial");
       return;
     }
 
     try {
-
-      const response = await api.get(
-        `full-hierarchy/${serial}/`
-      );
-
-      setTree(response.data);
-
+      const response = await api.get(`full-hierarchy/${serial}/`);
+      setTree(response.data.tree || response.data);
     } catch (err) {
-
-      setError(
-        err.response?.data?.error ||
-        "Serial not found"
-      );
+      setError(err.response?.data?.error || "Serial not found");
     }
   };
 
   return (
 
-    <div className="card">
+    <div className="feature-page">
 
-      <h2>Hierarchy Tree Viewer</h2>
+      <div className="feature-header">
+        <h1>Hierarchy Tree</h1>
+        <p>View the full parent-child structure for any serial.</p>
+      </div>
 
-      <input
-        type="text"
-        placeholder="Enter any serial"
-        value={serial}
-        onChange={(e) => setSerial(e.target.value)}
-      />
+      <div className="feature-panel">
 
-      <button
-        className="action"
-        onClick={fetchTree}
-      >
-        Show Tree
-      </button>
+        <div className="feature-form">
 
-      {error && (
+          <input
+            className="feature-input"
+            type="text"
+            placeholder="Enter any serial"
+            value={serial}
+            onChange={(e) => setSerial(e.target.value)}
+          />
 
-        <p
-          style={{
-            color: "red",
-            marginTop: "10px"
-          }}
-        >
-          {error}
-        </p>
-
-      )}
-
-      {tree && (
-
-        <div
-          style={{
-            marginTop: "20px"
-          }}
-        >
-
-          <h3>
-            Complete Hierarchy
-          </h3>
-
-          <ul>
-            <TreeNode node={tree} />
-          </ul>
+          <button
+            className="primary-action"
+            onClick={fetchTree}
+          >
+            Show Tree
+          </button>
 
         </div>
 
-      )}
+        {error && (
+          <p className="alert error">
+            {error}
+          </p>
+        )}
+
+        {tree && (
+
+          <div className="result-panel">
+
+            <h3>Complete Hierarchy</h3>
+
+            <div className="tree-scroll">
+              <ul className="tree-list">
+                <TreeNode node={tree} />
+              </ul>
+            </div>
+
+          </div>
+
+        )}
+
+      </div>
 
     </div>
   );

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import api from "../api/axios";
+import "../styles/FeaturePages.css";
 
 function GenerateBatch() {
 
@@ -41,18 +42,22 @@ function GenerateBatch() {
       return;
     }
 
-    if (!totalUnits) {
-      setError("Please enter total units");
+    const totalUnitsNumber = parseInt(totalUnits, 10);
+    const unitsPerCartonNumber = parseInt(unitsPerCarton, 10);
+    const cartonsPerPalletNumber = parseInt(cartonsPerPallet, 10);
+
+    if (!totalUnits || Number.isNaN(totalUnitsNumber) || totalUnitsNumber <= 0) {
+      setError("Please enter a valid total units value");
       return;
     }
 
-    if (!unitsPerCarton) {
-      setError("Please enter units per carton");
+    if (!unitsPerCarton || Number.isNaN(unitsPerCartonNumber) || unitsPerCartonNumber <= 0) {
+      setError("Please enter a valid units per carton value");
       return;
     }
 
-    if (!cartonsPerPallet) {
-      setError("Please enter cartons per pallet");
+    if (!cartonsPerPallet || Number.isNaN(cartonsPerPalletNumber) || cartonsPerPalletNumber <= 0) {
+      setError("Please enter a valid cartons per pallet value");
       return;
     }
 
@@ -60,9 +65,9 @@ function GenerateBatch() {
 
       const response = await api.post("generate-batch/", {
         product_id: productId,
-        total_units: totalUnits,
-        units_per_carton: unitsPerCarton,
-        cartons_per_pallet: cartonsPerPallet,
+        total_units: totalUnitsNumber,
+        units_per_carton: unitsPerCartonNumber,
+        cartons_per_pallet: cartonsPerPalletNumber,
       });
 
       setResult(response.data.summary);
@@ -79,70 +84,98 @@ function GenerateBatch() {
 
   return (
 
-    <div className="card">
+    <div className="feature-page">
 
-      <h2>Generate Product Batch</h2>
+      <div className="feature-header">
+        <h1>Generate Batch</h1>
+        <p>Create product serials in carton and pallet hierarchy.</p>
+      </div>
 
-      <select
-        value={productId}
-        onChange={(e) => setProductId(e.target.value)}
-      >
-        <option value="">Select Product</option>
+      <div className="feature-panel">
 
-        {products.map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.name} ({p.product_code})
-          </option>
-        ))}
-      </select>
+        <div className="feature-form">
 
-      <input
-        type="number"
-        placeholder="Total Units"
-        value={totalUnits}
-        onChange={(e) => setTotalUnits(e.target.value)}
-      />
+          <select
+            className="feature-select"
+            value={productId}
+            onChange={(e) => setProductId(e.target.value)}
+          >
+            <option value="">Select Product</option>
 
-      <input
-        type="number"
-        placeholder="Units Per Carton"
-        value={unitsPerCarton}
-        onChange={(e) => setUnitsPerCarton(e.target.value)}
-      />
+            {products.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name} ({p.product_code})
+              </option>
+            ))}
+          </select>
 
-      <input
-        type="number"
-        placeholder="Cartons Per Pallet"
-        value={cartonsPerPallet}
-        onChange={(e) => setCartonsPerPallet(e.target.value)}
-      />
+          <input
+            className="feature-input"
+            type="number"
+            placeholder="Total Units"
+            value={totalUnits}
+            onChange={(e) => setTotalUnits(e.target.value)}
+          />
 
-      <button className="action" onClick={handleGenerate}>
-        Generate Batch
-      </button>
+          <input
+            className="feature-input"
+            type="number"
+            placeholder="Units Per Carton"
+            value={unitsPerCarton}
+            onChange={(e) => setUnitsPerCarton(e.target.value)}
+          />
 
-      {error && (
-        <p
-          style={{
-            color: "red",
-            marginTop: "10px"
-          }}
-        >
-          {error}
-        </p>
-      )}
+          <input
+            className="feature-input"
+            type="number"
+            placeholder="Cartons Per Pallet"
+            value={cartonsPerPallet}
+            onChange={(e) => setCartonsPerPallet(e.target.value)}
+          />
 
-      {result && (
-        <div style={{ marginTop: "20px" }}>
-
-          <h3>Batch Summary</h3>
-
-          <p>Units: {result.units}</p>
-          <p>Cartons: {result.cartons}</p>
-          <p>Pallets: {result.pallets}</p>
+          <button
+            className="primary-action"
+            onClick={handleGenerate}
+          >
+            Generate Batch
+          </button>
 
         </div>
-      )}
+
+        {error && (
+          <p className="alert error">
+            {error}
+          </p>
+        )}
+
+        {result && (
+          <div className="result-panel">
+
+            <h3>Batch Summary</h3>
+
+            <div className="summary-grid">
+
+              <div className="summary-item">
+                <span>Units</span>
+                <strong>{result.units}</strong>
+              </div>
+
+              <div className="summary-item">
+                <span>Cartons</span>
+                <strong>{result.cartons}</strong>
+              </div>
+
+              <div className="summary-item">
+                <span>Pallets</span>
+                <strong>{result.pallets}</strong>
+              </div>
+
+            </div>
+
+          </div>
+        )}
+
+      </div>
 
     </div>
   );

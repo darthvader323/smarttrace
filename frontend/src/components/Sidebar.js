@@ -1,7 +1,18 @@
 import React from "react";
+import {
+  HiOutlineHome,
+  HiOutlineCube,
+  HiOutlineSearch,
+  HiOutlineClock,
+  HiOutlineLogout,
+  HiOutlineShieldCheck,
+  HiOutlineViewList
+} from "react-icons/hi";
+import { TbHierarchy3 } from "react-icons/tb";
+import { NavLink } from "react-router-dom";
+import "../styles/Sidebar.css";
 
-function Sidebar({ setPage, setLoggedIn,currentPage}) {
-
+function Sidebar({ setLoggedIn }) {
   const role = localStorage.getItem("role") || "SCANNER";
   const username = localStorage.getItem("username");
 
@@ -10,63 +21,73 @@ function Sidebar({ setPage, setLoggedIn,currentPage}) {
     setLoggedIn(false);
   };
 
+  const activeClass = ({ isActive }) =>
+    isActive ? "menu-btn active" : "menu-btn";
+
   return (
     <div className="sidebar">
+      <div className="sidebar-top">
+        <div className="logo-box">
+          <HiOutlineShieldCheck />
+        </div>
+        <div>
+          <h2>SmartTrace</h2>
+          <p className="role-text">Trace & Verification System</p>
+        </div>
+      </div>
 
-      <h2>SmartTrace</h2>
+      <div className="user-card">
+        <div className="avatar">{username?.charAt(0).toUpperCase()}</div>
+        <div>
+          <h4>{username || "User"}</h4>
+          <p>{role}</p>
+        </div>
+      </div>
 
-      <p>👤 {username || "User"} ({role})</p>
+      <div className="menu-section">
+        {role === "ADMIN" && (
+          <> 
+            <NavLink to="/dashboard" className={activeClass}>
+              <HiOutlineHome />
+              <span>Dashboard</span>
+            </NavLink>
+            <NavLink to="/generate" className={activeClass}>
+              <HiOutlineCube />
+              <span>Generate Batch</span>
+            </NavLink>
+            <NavLink to="/tree" className={activeClass}>
+              <TbHierarchy3 />
+              <span>Hierarchy Tree</span>
+            </NavLink>
+            <NavLink to="/serials" className={activeClass}>
+              <HiOutlineViewList />
+              <span>All Serials</span>
+            </NavLink>
+            <NavLink to="/status-management" className={activeClass}>
+              <HiOutlineShieldCheck />
+              <span>Recall & Status</span>
+            </NavLink>
+          </>
+        )}
 
+        <NavLink to="/scan" className={activeClass}>
+          <HiOutlineSearch />
+          <span>Scan & Verify</span>
+        </NavLink>
 
-      {role === "ADMIN" && (
-        <>
-        <button
-  className={currentPage === "dashboard" ? "active" : ""}
-  onClick={() => setPage("dashboard")}
->Dashboard</button>
-       <button
-  className={currentPage === "generate" ? "active" : ""}
-  onClick={() => setPage("generate")}
->
-  Generate Batch
-</button>
+        <NavLink to="/history" className={activeClass}>
+          <HiOutlineClock />
+          <span>Scan History</span>
+        </NavLink>
+      </div>
 
-<button
-  className={currentPage === "tree" ? "active" : ""}
-  onClick={() => setPage("tree")}
->
-  Hierarchy Tree
-</button>
-<button
-  onClick={() => setPage("status-management")}
->
-  Recall & Status Management
-</button>
-    </>
-      )}
-        {/* 👥 COMMON FOR ALL */}
-  <button
-  className={currentPage === "scan" ? "active" : ""}
-  onClick={() => setPage("scan")}
->
-    Scan & Verify
-  </button>
-
-  <button
-  className={currentPage === "history" ? "active" : ""}
-  onClick={() => setPage("history")}
->
-    Scan History
-  </button>
-
-  <hr style={{ margin: "20px 0" }} />
-
-  <button onClick={handleLogout} style={{ background: "#dc2626" }}>
-    Logout
-  </button>
-
-</div>
-
+      <div className="logout-section">
+        <button className="logout-btn" onClick={handleLogout}>
+          <HiOutlineLogout />
+          <span>Logout</span>
+        </button>
+      </div>
+    </div>
   );
 }
 

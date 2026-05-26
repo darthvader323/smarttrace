@@ -1,11 +1,18 @@
-import React, { useState,useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import {
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+  useNavigate
+} from "react-router-dom";
 import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import GenerateBatch from "./pages/GenerateBatch";
 import ScanVerify from "./pages/ScanVerify";
 import ScanHistory from "./pages/ScanHistory";
 import RecallStatusManagement from "./pages/RecallStatusManagement";
-import "./styles/dashboard.css";
+import SerialList from "./pages/SerialList";
 import HierarchyTree from "./pages/HierarchyTree";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -14,37 +21,65 @@ function App() {
   const [loggedIn, setLoggedIn] = useState(
     !!localStorage.getItem("token")
   );
-  const [loading, setLoading] = useState(true);
-  const [authPage, setAuthPage] = useState("login"); 
-  const [page, setPage] = useState("dashboard");
+  const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
-   setLoading(false);
-}, []);
+    if (!loggedIn) {
+      if (location.pathname !== "/login" && location.pathname !== "/register") {
+        navigate("/login", { replace: true });
+      }
+      return;
+    }
 
-if (loading) return null;
+    if (location.pathname === "/login" || location.pathname === "/register") {
+      const role = localStorage.getItem("role");
+      navigate(role === "ADMIN" ? "/dashboard" : "/scan", { replace: true });
+    }
+  }, [loggedIn, location.pathname, navigate]);
 
-
-  // 🔐 AUTH FLOW (REPLACE OLD LOGIN CHECK WITH THIS)
   if (!loggedIn) {
-    return authPage === "login"
-      ? <Login setLoggedIn={setLoggedIn} setPage={setAuthPage} />
-      : <Register setPage={setAuthPage} />;
+    return (
+      <Routes>
+        <Route
+          path="/login"
+          element={<Login setLoggedIn={setLoggedIn} />}
+        />
+        <Route path="/register" element={<Register />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    );
   }
 
-  const renderPage = () => {
-    if (page === "generate") return <GenerateBatch />;
-    if (page === "scan") return <ScanVerify />;
-    if (page === "tree") return <HierarchyTree />;
-    if (page === "history") return <ScanHistory />;
-    if (page === "status-management") return <RecallStatusManagement />;
-    return <Dashboard />;
+  const role = localStorage.getItem("role");
+  const defaultRoute =
+    role === "ADMIN"
+      ? "/dashboard"
+      : role === "SCANNER"
+      ? "/scan"
+      : "/login";
+
+  const AdminRoute = ({ children }) => {
+    if (role !== "ADMIN") {
+      return <Navigate to="/scan" replace />;
+    }
+    return children;
   };
 
   return (
-    <Layout setPage={setPage} setLoggedIn={setLoggedIn} page={page}>
-      {renderPage()}
+    <Layout setLoggedIn={setLoggedIn}>
+      <Routes>
+        <Route path="/dashboard" element={<AdminRoute><Dashboard /></AdminRoute>} />
+        <Route path="/generate" element={<AdminRoute><GenerateBatch /></AdminRoute>} />
+        <Route path="/tree" element={<AdminRoute><HierarchyTree /></AdminRoute>} />
+        <Route path="/serials" element={<AdminRoute><SerialList /></AdminRoute>} />
+        <Route path="/status-management" element={<AdminRoute><RecallStatusManagement /></AdminRoute>} />
+        <Route path="/history" element={<ScanHistory />} />
+        <Route path="/scan" element={<ScanVerify />} />
+        <Route path="*" element={<Navigate to={defaultRoute} replace />} />
+      </Routes>
     </Layout>
   );
 }
+
 export default App;

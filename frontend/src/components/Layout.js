@@ -1,13 +1,13 @@
 import React from "react";
 import Sidebar from "./Sidebar";
+import "../styles/Layout.css";
 
-function Layout({ setPage, setLoggedIn,page,children }) {
+function Layout({ setLoggedIn, children }) {
   return (
     <div className="layout">
-      <Sidebar setPage={setPage}  setLoggedIn={setLoggedIn} currentPage={page}/>
-
-      <div className="content">
-        {children}
+      <Sidebar setLoggedIn={setLoggedIn} />
+      <div className="content-wrapper">
+        <div className="content">{children}</div>
       </div>
     </div>
   );

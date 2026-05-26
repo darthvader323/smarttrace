@@ -1,7 +1,8 @@
 import hashlib
+import random
 from datetime import datetime
 from .models import SerialNumber,PackageHierarchy
-from django.db import transaction
+from django.db import IntegrityError, transaction
 
 
 
@@ -9,7 +10,7 @@ from django.db import transaction
 
 
 def luhn_checksum(number: str) -> str:
-    digits = [int(d) for d in number]
+    digits = [int(d) for d in number if d.isdigit()]
     odd_sum = sum(digits[-1::-2])
     even_sum = 0
 
@@ -21,27 +22,57 @@ def luhn_checksum(number: str) -> str:
     return str((10 - checksum) % 10)
 
 
-def generate_hash(serial: str, product_code: str, secret="SMARTTRACE"):
-    raw = f"{serial}{product_code}{secret}"
+def validate_check_digit(serial: str) -> bool:
+    digits = [d for d in serial if d.isdigit()]
+    if len(digits) < 2:
+        return False
+
+    body = ''.join(digits[:-1])
+    actual = digits[-1]
+    return luhn_checksum(body) == actual
+
+
+def generate_hash(
+    serial: str,
+    product_code: str,
+    production_date: str,
+    secret="SMARTTRACE"
+):
+    raw = f"{serial}{production_date}{product_code}{secret}"
     return hashlib.sha256(raw.encode()).hexdigest()
 
+
+
+def generate_sscc(company_prefix: str, sequence: int, extension: str = "0") -> str:
+    digits = "".join(filter(str.isdigit, company_prefix))
+    digits = digits[:10].rjust(7, "0")
+    serial_ref_length = 17 - len(digits)
+    serial_ref = str(sequence).zfill(serial_ref_length)
+    base = f"{extension}{digits}{serial_ref}"
+    check_digit = luhn_checksum(base)
+    return f"{base}{check_digit}"
 
 
 def generate_serials(product, level, quantity, company_prefix="STX"):
 
     serial_objects = []
 
+    production_date = datetime.utcnow().strftime("%Y%m%d")
     timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
-
     last_count = SerialNumber.objects.count()
 
     for i in range(quantity):
+        sequence = last_count + i + 1
 
-        base = f"{company_prefix}{timestamp}{last_count + i + 1}"
-        check_digit = luhn_checksum(base.replace(company_prefix, ""))
-        full_serial = f"{base}{check_digit}"
+        if level == "TERTIARY":
+            full_serial = generate_sscc(company_prefix, sequence)
+            check_digit = full_serial[-1]
+        else:
+            base = f"{company_prefix}{timestamp}{sequence:06d}"
+            check_digit = luhn_checksum(base)
+            full_serial = f"{base}{check_digit}"
 
-        hash_value = generate_hash(full_serial, product.product_code)
+        hash_value = generate_hash(full_serial, product.product_code, production_date)
 
         serial_objects.append(
             SerialNumber(
@@ -54,7 +85,11 @@ def generate_serials(product, level, quantity, company_prefix="STX"):
         )
 
     # ⚡ BULK INSERT
-    SerialNumber.objects.bulk_create(serial_objects)
+    try:
+        with transaction.atomic():
+            SerialNumber.objects.bulk_create(serial_objects)
+    except IntegrityError:
+        return generate_serials(product, level, quantity, company_prefix)
 
     return serial_objects
 def generate_batch(product, total_units, units_per_carton, cartons_per_pallet):

@@ -1,5 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useState
+} from "react";
 import api from "../api/axios";
+import "../styles/FeaturePages.css";
 
 function ScanHistory() {
 
@@ -8,14 +13,14 @@ function ScanHistory() {
 
   const [serialFilter, setSerialFilter] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [resultFilter, setResultFilter] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
 
   useEffect(() => {
     fetchLogs();
   }, []);
-
-  useEffect(() => {
-    applyFilters();
-  }, [logs, serialFilter, locationFilter]);
 
   const fetchLogs = async () => {
 
@@ -31,7 +36,7 @@ function ScanHistory() {
     }
   };
 
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
 
     let filtered = [...logs];
 
@@ -53,135 +58,292 @@ function ScanHistory() {
       );
     }
 
+    if (statusFilter) {
+
+      filtered = filtered.filter(
+        (log) => log.serial_status === statusFilter
+      );
+    }
+
+    if (resultFilter) {
+
+      filtered = filtered.filter(
+        (log) => log.scan_result === resultFilter
+      );
+    }
+
+    if (fromDate) {
+
+      const start = new Date(`${fromDate}T00:00:00`);
+
+      filtered = filtered.filter(
+        (log) => new Date(log.scanned_at) >= start
+      );
+    }
+
+    if (toDate) {
+
+      const end = new Date(`${toDate}T23:59:59`);
+
+      filtered = filtered.filter(
+        (log) => new Date(log.scanned_at) <= end
+      );
+    }
+
     setFilteredLogs(filtered);
+  }, [
+    logs,
+    serialFilter,
+    locationFilter,
+    statusFilter,
+    resultFilter,
+    fromDate,
+    toDate
+  ]);
+
+  const clearFilters = () => {
+    setSerialFilter("");
+    setLocationFilter("");
+    setStatusFilter("");
+    setResultFilter("");
+    setFromDate("");
+    setToDate("");
   };
+
+  useEffect(() => {
+    applyFilters();
+  }, [applyFilters]);
 
   return (
 
-    <div
-      className="card"
-      style={{ width: "100%" }}
-    >
+    <div className="feature-page">
 
-      <h2>Scan History</h2>
-
-      {/* FILTERS */}
-
-      <div
-        style={{
-          display: "flex",
-          gap: "10px",
-          marginTop: "20px",
-          marginBottom: "20px",
-          flexWrap: "wrap"
-        }}
-      >
-
-        <input
-          type="text"
-          placeholder="Filter by serial"
-          value={serialFilter}
-          onChange={(e) =>
-            setSerialFilter(e.target.value)
-          }
-        />
-
-        <select
-          value={locationFilter}
-          onChange={(e) =>
-            setLocationFilter(e.target.value)
-          }
-        >
-
-          <option value="">
-            All Locations
-          </option>
-
-          <option value="Delhi">
-            Delhi
-          </option>
-
-          <option value="Mumbai">
-            Mumbai
-          </option>
-
-          <option value="Kolkata">
-            Kolkata
-          </option>
-
-          <option value="Bangalore">
-            Bangalore
-          </option>
-
-        </select>
-
+      <div className="feature-header">
+        <h1>Scan History</h1>
+        <p>Review scan activity by serial, date, location, status and result.</p>
       </div>
 
-      {/* TABLE */}
+      <div className="feature-panel wide">
 
-      <table
-        style={{
-          width: "100%",
-          marginTop: "10px",
-          borderCollapse: "collapse"
-        }}
-      >
+        {/* FILTERS */}
 
-        <thead>
+        <div className="feature-row">
 
-          <tr>
+          <input
+            className="feature-input"
+            type="text"
+            placeholder="Filter by serial"
+            value={serialFilter}
+            onChange={(e) =>
+              setSerialFilter(e.target.value)
+            }
+          />
 
-            <th>Serial</th>
-            <th>Location</th>
-            <th>Time</th>
+          <select
+            className="feature-select"
+            value={locationFilter}
+            onChange={(e) =>
+              setLocationFilter(e.target.value)
+            }
+          >
 
-          </tr>
+            <option value="">
+              All Locations
+            </option>
 
-        </thead>
+            <option value="Delhi">
+              Delhi
+            </option>
 
-        <tbody>
+            <option value="Mumbai">
+              Mumbai
+            </option>
 
-          {filteredLogs.length > 0 ? (
+            <option value="Kolkata">
+              Kolkata
+            </option>
 
-            filteredLogs.map((log, index) => (
+            <option value="Bangalore">
+              Bangalore
+            </option>
 
-              <tr key={index}>
+          </select>
 
-                <td>{log.serial}</td>
+        </div>
 
-                <td>{log.location}</td>
+        <div className="feature-row">
 
-                <td>
-                  {new Date(
-                    log.scanned_at
-                  ).toLocaleString()}
-                </td>
+          <select
+            className="feature-select"
+            value={statusFilter}
+            onChange={(e) =>
+              setStatusFilter(e.target.value)
+            }
+          >
+
+            <option value="">
+              All Serial Statuses
+            </option>
+
+            <option value="ACTIVE">
+              ACTIVE
+            </option>
+
+            <option value="EXPIRED">
+              EXPIRED
+            </option>
+
+            <option value="RECALLED">
+              RECALLED
+            </option>
+
+          </select>
+
+          <select
+            className="feature-select"
+            value={resultFilter}
+            onChange={(e) =>
+              setResultFilter(e.target.value)
+            }
+          >
+
+            <option value="">
+              All Scan Results
+            </option>
+
+            <option value="VALID">
+              VALID
+            </option>
+
+            <option value="INVALID">
+              INVALID
+            </option>
+
+            <option value="SUSPECT">
+              SUSPECT
+            </option>
+
+          </select>
+
+        </div>
+
+        <div className="feature-row filter-actions">
+
+          <label className="date-field">
+            <span>From date</span>
+            <input
+              className="feature-input"
+              type="date"
+              value={fromDate}
+              onChange={(e) =>
+                setFromDate(e.target.value)
+              }
+            />
+          </label>
+
+          <label className="date-field">
+            <span>To date</span>
+            <input
+              className="feature-input"
+              type="date"
+              value={toDate}
+              onChange={(e) =>
+                setToDate(e.target.value)
+              }
+            />
+          </label>
+
+          <button
+            className="secondary-action"
+            onClick={clearFilters}
+          >
+            Clear Filters
+          </button>
+
+        </div>
+
+        {/* TABLE */}
+
+        <div className="table-wrap">
+
+          <table className="data-table">
+
+            <thead>
+
+              <tr>
+
+                <th>Serial</th>
+                <th>Serial Status</th>
+                <th>Scan Result</th>
+                <th>Location</th>
+                <th>Time</th>
 
               </tr>
 
-            ))
+            </thead>
 
-          ) : (
+            <tbody>
 
-            <tr>
+              {filteredLogs.length > 0 ? (
 
-              <td
-                colSpan="3"
-                style={{
-                  textAlign: "center",
-                  padding: "20px"
-                }}
-              >
-                No scan logs found
-              </td>
+                filteredLogs.map((log, index) => (
 
-            </tr>
+                  <tr key={index}>
 
-          )}
+                    <td>{log.serial}</td>
 
-        </tbody>
+                    <td>
+                      {log.serial_status || "-"}
+                    </td>
 
-      </table>
+                    <td>
+                      <span
+                        className={
+                          log.scan_result === "VALID"
+                            ? "status-pill status-valid"
+                            : log.scan_result === "SUSPECT"
+                            ? "status-pill status-suspect"
+                            : "status-pill status-invalid"
+                        }
+                      >
+                        {log.scan_result}
+                      </span>
+                    </td>
+
+                    <td>{log.location}</td>
+
+                    <td>
+                      {new Date(
+                        log.scanned_at
+                      ).toLocaleString()}
+                    </td>
+
+                  </tr>
+
+                ))
+
+              ) : (
+
+                <tr>
+
+                  <td
+                    className="empty-cell"
+                    colSpan="5"
+                  >
+                    No scan logs found
+                  </td>
+
+                </tr>
+
+              )}
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </div>
 
     </div>
   );
